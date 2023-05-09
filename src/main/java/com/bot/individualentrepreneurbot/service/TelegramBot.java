@@ -2,6 +2,7 @@ package com.bot.individualentrepreneurbot.service;
 
 import com.bot.individualentrepreneurbot.DocumentHandler;
 import com.bot.individualentrepreneurbot.config.BotConfig;
+import com.bot.individualentrepreneurbot.dao.CompanyDao;
 import com.sun.research.ws.wadl.Doc;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.PropertySource;
@@ -19,6 +20,8 @@ import java.io.File;
 public class TelegramBot extends TelegramLongPollingBot {
     @Autowired
     private DocumentHandler documentHandler;
+    @Autowired
+    private CompanyDao companyDao;
     private final BotConfig config;
     private boolean is_now_choose_company = false;
 
@@ -46,7 +49,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
                 } else if (is_now_choose_company) {
                     if(messageText.equals("1")){
-
+                        sendMessage(chatId, companyDao.findByName("aaa").getRequisites());
                     } else if(messageText.equals("2")){
 
                     } else {
