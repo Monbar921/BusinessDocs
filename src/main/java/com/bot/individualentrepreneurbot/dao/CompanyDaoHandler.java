@@ -8,6 +8,16 @@ import java.util.List;
 
 @Component
 public class CompanyDaoHandler {
+    private Company lastCompany;
+
+    public Company getLastCompany() {
+        return lastCompany;
+    }
+
+    public void setLastCompany(Company lastCompany) {
+        this.lastCompany = lastCompany;
+    }
+
     @Autowired
     private CompanyDao companyDao;
 

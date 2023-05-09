@@ -24,6 +24,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private CompanyDaoHandler companyDaoHandler;
     private final BotConfig config;
     private LastOperation lastOperation = LastOperation.START;
+    private String[] inputData;
 
     public TelegramBot(BotConfig config) {
         this.config = config;
@@ -64,12 +65,10 @@ public class TelegramBot extends TelegramLongPollingBot {
                         sendMessage(chatId, "Ошибка при выборе номера компании. Попробуйте снова");
                     }
                 } else if (lastOperation == LastOperation.INPUT_VALUES) {
-                    messageText = messageText.replace(" ", "");
-                    if(messageText.matches("[0-9]{2}[.][0-9]{2}[.][0-9]{4},[0-9]{1,2},[0-9]{4,5}")){
-                        System.out.println("dfdf");
-                    } else {
-                        sendMessage(chatId, "Вы ошиблись в вводе данных поездки. Попробуйте снова");
-                    }
+                    readInputData(chatId, messageText);
+                } else if (lastOperation == LastOperation.CHECK_CORRECT) {
+                    documentHandler.getDocument(companyDaoHandler.getLastCompany().getCounter(), companyDaoHandler.getLastCompany().getRequisites(),
+                            Integer.parseInt(inputData[1]), Integer.parseInt(inputData[2]));
                 }
                 else {
                     throw new TelegramApiException();
@@ -77,7 +76,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
 //                    case "/getDoc" -> sendDocument(chatId, new File(documentHandler.getInputFileName()));
 
-            } catch (TelegramApiException e) {
+            } catch (Exception e) {
                 sendMessage(chatId, "Что-то пошло не так. Попробуйте снова с /start");
             }
         }
@@ -97,6 +96,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void chooseCompanyById(long chatId, int id){
         try {
             Company output = companyDaoHandler.returnCompanyById(id);
+            companyDaoHandler.setLastCompany(output);
             sendMessage(chatId, output.toString());
             sendMessage(chatId, "Компания " + "<b>" + output.getName() + "</b>" + " выбрана\n" +
                     "Введите данные о работе в формате:\n" +
@@ -105,6 +105,29 @@ public class TelegramBot extends TelegramLongPollingBot {
             lastOperation = LastOperation.INPUT_VALUES;
         } catch (NotFoundException e) {
             sendMessage(chatId, "Нет компаний в базе.\nНачни заново с /start");
+        }
+    }
+
+    private void readInputData(long chatId, String input){
+        input = input.replace(" ", "");
+        if(input.matches("[0-9]{2}[.][0-9]{2}[.][0-9]{4},[0-9]{1,2},[0-9]{4,5}")){
+            inputData = input.split(",");
+            sendMessage(chatId, "Проверьте, все ли верно? (введите да/нет)");
+            StringBuilder check = new StringBuilder();
+            check.append("Компания - " + companyDaoHandler.getLastCompany().getName()).append("\n").
+                    append("Дата - ").append(inputData[0]).append("\n").
+                    append("Часов - ").append(inputData[1]).append("\n").
+                    append("Цена - ").append(inputData[2]).append("\n");
+            sendMessage(chatId, check.toString());
+            lastOperation = LastOperation.CHECK_CORRECT;
+        } else {
+            sendMessage(chatId, "Вы ошиблись в вводе данных поездки. Попробуйте снова");
+        }
+    }
+
+    private void checkCorrect(String input){
+        if(input.equals("да")){
+
         }
     }
 

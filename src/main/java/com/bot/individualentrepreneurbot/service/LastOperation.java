@@ -4,5 +4,7 @@ public enum LastOperation {
     START,
     CHOOSING_COMPANIES,
     COMPANY_CHOSE,
-    INPUT_VALUES
+    INPUT_VALUES,
+    CHECK_CORRECT,
+    GET_DOCUMENT
 }

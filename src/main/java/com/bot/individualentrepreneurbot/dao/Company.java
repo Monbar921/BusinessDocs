@@ -10,9 +10,14 @@ public class Company {
     private int id;
     private String name;
     private String requisites;
+    private int counter;
 
     public int getId() {
         return id;
+    }
+
+    public int getCounter() {
+        return counter;
     }
 
     public String getName() {
