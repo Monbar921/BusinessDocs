@@ -22,4 +22,9 @@ public class Company {
     public String getRequisites() {
         return requisites;
     }
+
+    @Override
+    public String toString() {
+        return id + " - " + name;
+    }
 }

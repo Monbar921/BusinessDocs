@@ -2,10 +2,10 @@ package com.bot.individualentrepreneurbot.service;
 
 import com.bot.individualentrepreneurbot.DocumentHandler;
 import com.bot.individualentrepreneurbot.config.BotConfig;
-import com.bot.individualentrepreneurbot.dao.CompanyDao;
-import com.sun.research.ws.wadl.Doc;
+import com.bot.individualentrepreneurbot.dao.Company;
+import com.bot.individualentrepreneurbot.dao.CompanyDaoHandler;
+import jakarta.ws.rs.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
@@ -21,9 +21,9 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Autowired
     private DocumentHandler documentHandler;
     @Autowired
-    private CompanyDao companyDao;
+    private CompanyDaoHandler companyDaoHandler;
     private final BotConfig config;
-    private boolean is_now_choose_company = false;
+    private LastOperation lastOperation = LastOperation.START;
 
     public TelegramBot(BotConfig config) {
         this.config = config;
@@ -47,17 +47,32 @@ public class TelegramBot extends TelegramLongPollingBot {
             try {
                 if (messageText.equals("/start")) {
                     startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
-                } else if (is_now_choose_company) {
-                    if(messageText.equals("1")){
-                        sendMessage(chatId, companyDao.findByName("aaa").getRequisites());
-                    } else if(messageText.equals("2")){
+                } else if (lastOperation == LastOperation.CHOOSING_COMPANIES) {
+                    if (messageText.equals("1")) {
+                        showAllCompanies(chatId);
+                    } else if (messageText.equals("2")) {
 
                     } else {
+                        lastOperation = LastOperation.START;
                         throw new TelegramApiException();
                     }
-                    is_now_choose_company = false;
-                } else  {
-                    sendMessage(chatId, "Не поддерживается");
+                } else if (lastOperation == LastOperation.COMPANY_CHOSE) {
+                    try{
+                        int id = Integer.parseInt(messageText);
+                        chooseCompanyById(chatId, id);
+                    }catch (Exception e){
+                        sendMessage(chatId, "Ошибка при выборе номера компании. Попробуйте снова");
+                    }
+                } else if (lastOperation == LastOperation.INPUT_VALUES) {
+                    messageText = messageText.replace(" ", "");
+                    if(messageText.matches("[0-9]{2}[.][0-9]{2}[.][0-9]{4},[0-9]{1,2},[0-9]{4,5}")){
+                        System.out.println("dfdf");
+                    } else {
+                        sendMessage(chatId, "Вы ошиблись в вводе данных поездки. Попробуйте снова");
+                    }
+                }
+                else {
+                    throw new TelegramApiException();
                 }
 
 //                    case "/getDoc" -> sendDocument(chatId, new File(documentHandler.getInputFileName()));
@@ -68,10 +83,46 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    private void showAllCompanies(long chatId) {
+        try {
+            String output = companyDaoHandler.returnAllRecords();
+            sendMessage(chatId, output);
+            sendMessage(chatId, "Выберите компанию по ее номеру(id)");
+            lastOperation = LastOperation.COMPANY_CHOSE;
+        } catch (NotFoundException e) {
+            sendMessage(chatId, "Нет компаний в базе.\nНачни заново с /start");
+        }
+    }
+
+    private void chooseCompanyById(long chatId, int id){
+        try {
+            Company output = companyDaoHandler.returnCompanyById(id);
+            sendMessage(chatId, output.toString());
+            sendMessage(chatId, "Компания " + "<b>" + output.getName() + "</b>" + " выбрана\n" +
+                    "Введите данные о работе в формате:\n" +
+                    "<b>" + "Дата, количество часов, цена часа" + "</b>" + "\n" +
+                    "<b>" + "Пример: 20.04.2023, 10, 1500" + "</b>");
+            lastOperation = LastOperation.INPUT_VALUES;
+        } catch (NotFoundException e) {
+            sendMessage(chatId, "Нет компаний в базе.\nНачни заново с /start");
+        }
+    }
+
+//    private void addCompany(long chatId, String name){
+//        String output;
+//        try{
+//            output = companyDaoHandler.returnAllRecords();
+//            is_company_chose = true;
+//        }catch (NotFoundException e){
+//            output = "Нет компаний в базе.\nНачни заново с /start";
+//        }
+//        sendMessage(chatId, output);
+//    }
+
     private void startCommandReceived(long chatId, String firstName) throws TelegramApiException {
         String answer = "Здравствуйте, " + firstName + ". Что вы хотите сделать?\n" + "<b>1-Выбрать компанию из имеющихся</b>\n" + "<b>2-Добавить компанию</b>";
         sendMessage(chatId, answer);
-        is_now_choose_company = true;
+        lastOperation = LastOperation.CHOOSING_COMPANIES;
     }
 
     private void sendDocument(Long chatId, File save) throws TelegramApiException {

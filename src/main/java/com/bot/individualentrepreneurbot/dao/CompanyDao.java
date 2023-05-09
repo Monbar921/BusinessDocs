@@ -7,4 +7,5 @@ import java.util.List;
 public interface CompanyDao extends CrudRepository<Company, Integer> {
     List<Company> findAllByOrderByName();
     Company findByName(String name);
+    Company findById(int id);
 }
