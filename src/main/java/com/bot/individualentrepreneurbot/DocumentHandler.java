@@ -77,9 +77,8 @@ public class DocumentHandler {
         if (docText.matches(".*v.*")) {
             RuleBasedNumberFormat nf = new RuleBasedNumberFormat(Locale.forLanguageTag("ru"),
                     RuleBasedNumberFormat.SPELLOUT);
-            byte[] arr = nf.format(Integer.parseInt(sum)).getBytes();
-            arr[0] = (byte) (arr[0] - 32);
-            docText = docText.replace("v", new String(arr));
+            String result = nf.format(Integer.parseInt(sum));
+            docText = docText.replace("v", result.substring(0, 1).toUpperCase() + result.substring(1));
         }
         return docText;
     }

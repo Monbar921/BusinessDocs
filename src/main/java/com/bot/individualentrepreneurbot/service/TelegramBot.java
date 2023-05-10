@@ -15,6 +15,7 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.File;
+import java.io.IOException;
 
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
@@ -67,8 +68,8 @@ public class TelegramBot extends TelegramLongPollingBot {
                 } else if (lastOperation == LastOperation.INPUT_VALUES) {
                     readInputData(chatId, messageText);
                 } else if (lastOperation == LastOperation.CHECK_CORRECT) {
-                    documentHandler.getDocument(companyDaoHandler.getLastCompany().getCounter(), companyDaoHandler.getLastCompany().getRequisites(),
-                            Integer.parseInt(inputData[1]), Integer.parseInt(inputData[2]));
+                    getDocument(messageText);
+                    sendDocument(chatId, new File(documentHandler.getOutputFileName()));
                 }
                 else {
                     throw new TelegramApiException();
@@ -78,6 +79,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             } catch (Exception e) {
                 sendMessage(chatId, "Что-то пошло не так. Попробуйте снова с /start");
+                lastOperation = LastOperation.START;
             }
         }
     }
@@ -125,9 +127,12 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void checkCorrect(String input){
+    private void getDocument(String input) throws Exception {
         if(input.equals("да")){
-
+            documentHandler.getDocument(companyDaoHandler.getLastCompany().getCounter(), companyDaoHandler.getLastCompany().getRequisites(),
+                    Integer.parseInt(inputData[1]), Integer.parseInt(inputData[2]));
+        }else {
+            throw new NotFoundException();
         }
     }
 
@@ -149,7 +154,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void sendDocument(Long chatId, File save) throws TelegramApiException {
-        System.out.println(save.getAbsolutePath());
+//        System.out.println(save.getAbsolutePath());
         SendDocument sendDocumentRequest = new SendDocument();
         sendDocumentRequest.setChatId(chatId + "");
         sendDocumentRequest.setDocument(new InputFile(save));
