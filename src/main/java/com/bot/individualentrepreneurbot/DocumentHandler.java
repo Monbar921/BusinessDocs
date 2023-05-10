@@ -9,6 +9,7 @@ import org.apache.poi.xwpf.usermodel.*;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -28,6 +29,7 @@ public class DocumentHandler {
     private int cost_per_hour;
 
     public void getDocument(int counter, String requisites, int hours, int cost_per_hour) throws IOException {
+        deleteFile();
         this.counter = counter;
         this.requisites = requisites;
         this.hours = hours;
@@ -120,5 +122,10 @@ public class DocumentHandler {
 
     public String getOutputFileName() {
         return outputFileName;
+    }
+
+    public void deleteFile() throws IOException {
+        Path fileToDeletePath = Paths.get(outputFileName);
+        Files.deleteIfExists(fileToDeletePath);
     }
 }

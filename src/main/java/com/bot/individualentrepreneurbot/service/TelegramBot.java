@@ -12,10 +12,14 @@ import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
@@ -26,6 +30,9 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final BotConfig config;
     private LastOperation lastOperation = LastOperation.START;
     private String[] inputData;
+
+    private static final String YES_BUTTON = "YES_BUTTON";
+    private static final String NO_BUTTON = "NO_BUTTON";
 
     public TelegramBot(BotConfig config) {
         this.config = config;
@@ -48,7 +55,9 @@ public class TelegramBot extends TelegramLongPollingBot {
             long chatId = update.getMessage().getChatId();
             try {
                 if (messageText.equals("/start")) {
+//                    System.out.println("in start");
                     startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
+
                 } else if (lastOperation == LastOperation.CHOOSING_COMPANIES) {
                     if (messageText.equals("1")) {
                         showAllCompanies(chatId);
@@ -59,10 +68,10 @@ public class TelegramBot extends TelegramLongPollingBot {
                         throw new TelegramApiException();
                     }
                 } else if (lastOperation == LastOperation.COMPANY_CHOSE) {
-                    try{
+                    try {
                         int id = Integer.parseInt(messageText);
                         chooseCompanyById(chatId, id);
-                    }catch (Exception e){
+                    } catch (Exception e) {
                         sendMessage(chatId, "Ошибка при выборе номера компании. Попробуйте снова");
                     }
                 } else if (lastOperation == LastOperation.INPUT_VALUES) {
@@ -70,13 +79,10 @@ public class TelegramBot extends TelegramLongPollingBot {
                 } else if (lastOperation == LastOperation.CHECK_CORRECT) {
                     getDocument(messageText);
                     sendDocument(chatId, new File(documentHandler.getOutputFileName()));
-                }
-                else {
+                    documentHandler.deleteFile();
+                } else {
                     throw new TelegramApiException();
                 }
-
-//                    case "/getDoc" -> sendDocument(chatId, new File(documentHandler.getInputFileName()));
-
             } catch (Exception e) {
                 sendMessage(chatId, "Что-то пошло не так. Попробуйте снова с /start");
                 lastOperation = LastOperation.START;
@@ -95,7 +101,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void chooseCompanyById(long chatId, int id){
+    private void chooseCompanyById(long chatId, int id) {
         try {
             Company output = companyDaoHandler.returnCompanyById(id);
             companyDaoHandler.setLastCompany(output);
@@ -110,17 +116,18 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void readInputData(long chatId, String input){
+    private void readInputData(long chatId, String input) {
         input = input.replace(" ", "");
-        if(input.matches("[0-9]{2}[.][0-9]{2}[.][0-9]{4},[0-9]{1,2},[0-9]{4,5}")){
+        if (input.matches("[0-9]{2}[.][0-9]{2}[.][0-9]{4},[0-9]{1,2},[0-9]{4,5}")) {
             inputData = input.split(",");
-            sendMessage(chatId, "Проверьте, все ли верно? (введите да/нет)");
+            sendMessage(chatId, "Введенные данные:");
             StringBuilder check = new StringBuilder();
             check.append("Компания - " + companyDaoHandler.getLastCompany().getName()).append("\n").
                     append("Дата - ").append(inputData[0]).append("\n").
                     append("Часов - ").append(inputData[1]).append("\n").
                     append("Цена - ").append(inputData[2]).append("\n");
             sendMessage(chatId, check.toString());
+            sendButtons(chatId);
             lastOperation = LastOperation.CHECK_CORRECT;
         } else {
             sendMessage(chatId, "Вы ошиблись в вводе данных поездки. Попробуйте снова");
@@ -128,10 +135,10 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void getDocument(String input) throws Exception {
-        if(input.equals("да")){
+        if (input.equals("да")) {
             documentHandler.getDocument(companyDaoHandler.getLastCompany().getCounter(), companyDaoHandler.getLastCompany().getRequisites(),
                     Integer.parseInt(inputData[1]), Integer.parseInt(inputData[2]));
-        }else {
+        } else {
             throw new NotFoundException();
         }
     }
@@ -154,7 +161,6 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void sendDocument(Long chatId, File save) throws TelegramApiException {
-//        System.out.println(save.getAbsolutePath());
         SendDocument sendDocumentRequest = new SendDocument();
         sendDocumentRequest.setChatId(chatId + "");
         sendDocumentRequest.setDocument(new InputFile(save));
@@ -162,14 +168,58 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void sendMessage(long chatId, String message) {
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.setChatId(String.valueOf(chatId));
-        sendMessage.setText(message);
-        sendMessage.enableHtml(true);
+//        System.out.println("before init");
+        SendMessage sendMessage = initMessage(chatId,message);
+//        System.out.println("after init");
+        executeMessage(sendMessage);
+    }
+
+    private void sendButtons(long chatId) {
+//        SendMessage message = new SendMessage();
+//        message.setChatId(String.valueOf(chatId));
+//        message.setText("Все ли верно?");
+        SendMessage message = initMessage(chatId,"Все ли верно?");
+
+        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
+        List<InlineKeyboardButton> rowInLine = new ArrayList<>();
+
+        var yesButton = new InlineKeyboardButton();
+        yesButton.setText("Да");
+        yesButton.setCallbackData(YES_BUTTON);
+
+        var noButton = new InlineKeyboardButton();
+        noButton.setText("Нет");
+        noButton.setCallbackData(NO_BUTTON);
+
+        rowInLine.add(yesButton);
+        rowInLine.add(noButton);
+
+        rowsInLine.add(rowInLine);
+
+        markupInLine.setKeyboard(rowsInLine);
+        message.setReplyMarkup(markupInLine);
+
+        executeMessage(message);
+
+    }
+
+
+    private void executeMessage(SendMessage message){
         try {
-            execute(sendMessage);
+            execute(message);
+//            System.out.println("execute");
         } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
         }
     }
+
+    private SendMessage initMessage(long chatId, String text){
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(String.valueOf(chatId));
+        sendMessage.setText(text);
+        sendMessage.enableHtml(true);
+        return sendMessage;
+    }
+
 }
