@@ -23,13 +23,15 @@ public class DocumentHandler {
     private String inputFileName;
     @Value("${file.output}")
     private String outputFileName;
+    private String date;
     private int counter;
     private String requisites;
     private int hours;
     private int cost_per_hour;
 
-    public void getDocument(int counter, String requisites, int hours, int cost_per_hour) throws IOException {
+    public void getDocument(String date, int counter, String requisites, int hours, int cost_per_hour) throws IOException {
         deleteFile();
+        this.date = date;
         this.counter = counter;
         this.requisites = requisites;
         this.hours = hours;
@@ -71,9 +73,9 @@ public class DocumentHandler {
     private String paragraphFieldsToReplace(String docText, int counter, String sum) {
         docText = docText.replace("counter", String.valueOf(counter));
         if (docText.matches(".*date.*")) {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-            LocalDateTime dateTime = LocalDateTime.now();
-            docText = docText.replace("date", dateTime.format(formatter));
+//            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+//            LocalDateTime dateTime = LocalDateTime.now();
+            docText = docText.replace("date", date);
         }
         docText = docText.replace("sum", sum);
         if (docText.matches(".*v.*")) {
