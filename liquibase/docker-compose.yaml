@@ -1,0 +1,38 @@
+version: "3"
+services:
+  db:
+    image: postgres:14
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    # volumes:
+    #   - ./database/init_database.sql:/docker-entrypoint-initdb.d/init_database.sql
+    ports:
+      - '5432:5432'
+    expose:
+      - "5432"
+    networks:
+      - docs_network
+
+  liquibase:
+    image: liquibase/liquibase:latest
+    restart: on-failure
+    depends_on:
+      - db
+    volumes:
+      - ./database/liquibase/changeLog/:/liquibase/changelog/
+    command: --defaults-file=/liquibase/changelog/liquibase.properties --username=postgres --password=postgres update
+    #    command: --defaults-file=/liquibase/changelog/liquibase.properties --username=postgres --password=postgres --labels="create_users" update
+    #    command: --defaults-file=/liquibase/changelog/liquibase.properties --username=postgres --password=postgres rollback-count 1
+
+    # if i want to update only schema
+    #     command:>
+    #       sh -c "liquibase diffChangeLog --referenceUsername=postgres --referencePassword=postgres --referenceUrl="jdbc:postgresql://db:5432/newsline" --username=postgres --url="jdbc:postgresql://db2:5432/newsline" --password=postgres --changeLogFile=ex.xml &&
+    #       liquibase update --username=postgres --url="jdbc:postgresql://db2:5432/newsline" --password=postgres --changeLogFile=ex.xml"
+
+    # if i want to update not only schema, but also data in tables
+    # command: >
+    #   sh -c "liquibase --username=postgres --url="jdbc:postgresql://db:5432/newsline" --password=postgres --diffTypes=tables,columns,data --dataOutputDirectory=myData --changeLogFile=ex.xml generate-changelog &&
+    #   liquibase update --username=postgres --url="jdbc:postgresql://db2:5432/newsline" --password=postgres --changeLogFile=ex.xml"
+    networks:
+      - docs_network

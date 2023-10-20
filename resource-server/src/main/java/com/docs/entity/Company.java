@@ -1,4 +1,4 @@
-package com.bot.individualentrepreneurbot.dao;
+package com.docs.entity;
 
 import jakarta.persistence.*;
 

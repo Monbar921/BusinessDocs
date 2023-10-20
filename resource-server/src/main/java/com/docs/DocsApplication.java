@@ -1,13 +1,13 @@
-package com.bot.individualentrepreneurbot;
+package com.docs;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class IndividualEntrepreneurBotApplication {
+public class DocsApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(IndividualEntrepreneurBotApplication.class, args);
+        SpringApplication.run(DocsApplication.class, args);
     }
 
 }

@@ -1,4 +1,4 @@
-package com.bot.individualentrepreneurbot;
+package com.docs.business;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Locale;
 
 @Component
-@PropertySource("application.properties")
 public class DocumentHandler {
     @Value("${file.input}")
     private String inputFileName;
